@@ -19,7 +19,7 @@ graph TD
 ```
 
 
-In this example we will use `Hibernate Entity Manager` to solve N+1 problem.
+In this example we will use `3rd Party Entity Graph Utility` to solve N+1 problem.
 
 
 
@@ -28,12 +28,22 @@ In this example we will use `Hibernate Entity Manager` to solve N+1 problem.
 ```mermaid
 graph TD
 		
-	A[JPA Repository] --> | Using Named Entity Graph API | B(NamedEntityGraph)
-	A[JPA Repository] --> | Using Attribute Paths | C(Attribute Paths)
+	A[3rd Party Entity Graph Utility] --> | Using Named Entity Graph API | B(NamedEntityGraph)
+	A[3rd Party Entity Graph Utility] --> | Using EntityGraph API | C(EntityGraph)
 ```
 ### DB Design
 
 ![alt text](/ERDiagram.png)
+
+### pom.xml dependency 
+
+```xml
+ 	<dependency>
+	    <groupId>com.cosium.spring.data</groupId>
+	    <artifactId>spring-data-jpa-entity-graph</artifactId>
+	    <version>2.3.1</version>
+	</dependency>
+``` 
 
 
 ## Without Entity Graph
