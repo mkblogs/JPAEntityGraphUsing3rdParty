@@ -52,21 +52,35 @@ graph TD
 ```java
 
 @Repository
-public interface AuthorRepository extends JpaRepository<Author, Integer> {
+public interface AuthorRepository extends EntityGraphJpaRepository<Author, Integer> {
 
-     @Query("SELECT author FROM Author author WHERE author.id = :id ")
-	 Author findAuthor(@Param("id")  Integer id);
+	
+	@Query("SELECT author FROM Author author WHERE author.id = :id ")
+	Author findAuthor(@Param("id")  Integer id);
+	
+	@Query("SELECT author FROM Author author WHERE author.id = :id ")
+	Author findBooks(@Param("id")  Integer id,EntityGraph entityGraph);
+	 
 }
 
 ```
 ### Test case 
 ```java
-	Author author = authorRepository.findAuthor(1);
-	log.info(author.getFirstName()+" "+author.getLastName()+" wrote "+author.getBooks().size()+" books.");
-	Set<Book> books = author.getBooks(); 
-	 for(Book book: books) {
-		log.info(book.getPublisher()); 
-	 }
+	@Test
+	public void selectAuthor() {
+		log.info("... selectAuthor ...");		
+		Author author = authorRepository.findAuthor(1);
+		displayAuthor(author);
+	}
+	
+	protected void displayAuthor(Author author) {
+		log.info(author.getFirstName()+" "+author.getLastName()+" wrote "+author.getBooks().size()+" books.");
+		Set<Book> books = author.getBooks(); 
+		 for(Book book: books) {
+			log.info(book.getPublisher()); 
+		 }
+		
+	}
 	
 ```
 We can notice when I tried to access author, books and publisher, it issues 3 queries to fetch the data.
@@ -99,7 +113,7 @@ Hibernate:
             on books0_.`book_id`=book1_.`id` 
     where
         books0_.`author_id`=?
-20:18:16.222  INFO 11160 ---[main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
+21:05:06.725  INFO 11284 ---[main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
 Hibernate: 
     select
         publisher0_.`id` as id1_3_0_,
@@ -109,7 +123,7 @@ Hibernate:
         `publisher` publisher0_ 
     where
         publisher0_.`id`=?
-20:18:16.232  INFO 11160 ---[main] .t.m.r.TestJPARepositoryNamedEntityGraph : Publisher name: Addison-Wesley Professional
+21:05:06.737  INFO 11284 ---[main] .t.m.r.TestJPARepositoryNamedEntityGraph : Publisher name: Addison-Wesley Professional
 
 ```
 
@@ -120,11 +134,11 @@ Hibernate:
 ```java
 @Entity
 @Table(name = "author")
-@NamedEntityGraph(name = "graph.author.books.publisher", 
+@NamedEntityGraph(name = "3rdpartygraph.author.books.publisher", 
 	attributeNodes = @NamedAttributeNode(value = "books", subgraph = "books"),
 	subgraphs = @NamedSubgraph(name = "books", attributeNodes = @NamedAttributeNode("publisher"))    )
 
-@NamedEntityGraph(name = "graph.author.books", attributeNodes = @NamedAttributeNode(value = "books"))
+@NamedEntityGraph(name = "3rdpartygraph.author.books", attributeNodes = @NamedAttributeNode(value = "books"))
 
 public class Author {
 
@@ -196,18 +210,17 @@ public class Publisher {
 
 ```
 
-In below example we are using `@EntityGraph` and value attribute `graph.author.books` to get entity graph api. 
+In below example we are using `EntityGraph` pass as parameter in find methods. 
 It will load only Book objects but not publisher associate with books
 
 ### Repository Class
 ```java
 
 @Repository
-public interface AuthorRepository extends JpaRepository<Author, Integer> {
+public interface AuthorRepository extends EntityGraphJpaRepository<Author, Integer> {
 
-     @EntityGraph(value ="graph.author.books" , type = EntityGraphType.LOAD)
-	 @Query("SELECT author FROM Author author WHERE author.id = :id ")
-	 Author findNamedEntityGraphBooksAndLoad(@Param("id")  Integer id);
+	@Query("SELECT author FROM Author author WHERE author.id = :id ")
+	Author findBooks(@Param("id")  Integer id,EntityGraph entityGraph);
 	
 }
 
@@ -216,9 +229,10 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
 ```java
 
 	@Test
-	public void findNamedEntityGraphBooksAndLoad() {
-		log.info("... findNamedEntityGraphBooksAndLoad ...");		
-		Author author = authorRepository.findNamedEntityGraphBooksAndLoad(1);
+	public void selectWithBooksUsingNamedEntityGraph() {
+		log.info("... selectWithBooksUsingNamedEntityGraph ...");		
+		Author author = authorRepository.findBooks(new Integer(1), 
+				EntityGraphUtils.fromName("3rdpartygraph.author.books",true));
 		displayAuthor(author);
 	}
 	
@@ -259,7 +273,7 @@ Hibernate:
             on books1_.`book_id`=book2_.`id` 
     where
         author0_.`id`=?
-20:26:40.480  INFO 13376 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
+21:10:23.108  INFO 9004 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
 Hibernate: 
     select
         publisher0_.`id` as id1_3_0_,
@@ -269,23 +283,21 @@ Hibernate:
         `publisher` publisher0_ 
     where
         publisher0_.`id`=?
-20:26:40.491  INFO 13376 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Publisher name: Addison-Wesley Professional
-
+2020-07-12 21:10:23.118  INFO 9004 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Publisher name: Addison-Wesley Professional
 
 ```
 
-In below example we are using `@EntityGraph` and value attribute `graph.author.books.publisher` to get entity graph api. 
+In below example we are using `EntityGraph` pass as parameter in find methods.  
 It will load Book objects as well as publisher associate with books
 
 ### Repository Class
 ```java
 
 @Repository
-public interface AuthorRepository extends JpaRepository<Author, Integer> {
+public interface AuthorRepository extends EntityGraphJpaRepository<Author, Integer> {
 
-     @EntityGraph(value ="graph.author.books.publisher",type = EntityGraphType.LOAD)
-	 @Query("SELECT author FROM Author author WHERE author.id = :id ")
-	 Author findNamedEntityGraphBooksPublisherAndLoad(@Param("id") Integer id);
+	@Query("SELECT author FROM Author author WHERE author.id = :id ")
+	Author findBooks(@Param("id")  Integer id,EntityGraph entityGraph);
 	
 }
 
@@ -295,9 +307,10 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
 ```java
 
 	@Test
-	public void findNamedEntityGraphBooksPublisherAndLoad() {
-		log.info("... findNamedEntityGraphBooksPublisherAndLoad ...");		
-		Author author = authorRepository.findNamedEntityGraphBooksPublisherAndLoad(1);
+	public void selectWithBooksPublisherUsingNamedEntityGraph() {
+		log.info("... selectWithBooksPublisherUsingNamedEntityGraph...");		
+		Author author = authorRepository.findBooks(new Integer(1), 
+				EntityGraphUtils.fromName("3rdpartygraph.author.books.publisher",true));
 		displayAuthor(author);
 	}
 	
@@ -342,12 +355,11 @@ Hibernate:
             on book2_.`publisher_id`=publisher3_.`id` 
     where
         author0_.`id`=?
-20:30:11.256  INFO 8560 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
-20:30:11.257  INFO 8560 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Publisher name: Addison-Wesley Professional
+21:12:23.046  INFO 3464 ---[main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
 
 ```
 
-## Attribute Paths
+## Entity Graph API
 
 ### Entity Class
 
@@ -425,17 +437,16 @@ public class Publisher {
 ```
 
 ### Repository Class
-In below example we can set attributes paths. `@EntityGraph(attributePaths = {"books"},type = EntityGraphType.LOAD)`
+In below example we can set attributes paths. `EntityGraphUtils.fromAttributePaths("books")`
 It will load only Book objects but not publisher associate with books
 
 ```java
 
 @Repository
-public interface AuthorRepository extends JpaRepository<Author, Integer> {
+public interface AuthorRepository extends EntityGraphJpaRepository<Author, Integer> {
 
-     @EntityGraph(attributePaths = {"books"},type = EntityGraphType.LOAD)
-	 @Query("SELECT author FROM Author author WHERE author.id = :id ")
-	 Author findOnlyBooksAndLoad(@Param("id")  Integer id);
+	@Query("SELECT author FROM Author author WHERE author.id = :id ")
+	Author findBooks(@Param("id")  Integer id,EntityGraph entityGraph);
 	
 }
 
@@ -446,9 +457,9 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
 ```java
 
 	@Test
-	public void findOnlyBooksAndLoad() {
-		log.info("... findOnlyBooksAndLoad ...");		
-		Author author = authorRepository.findOnlyBooksAndLoad(1);
+	public void selectWithBooks() {
+		log.info("... selectWithBooksPublisher ...");		
+		Author author = authorRepository.findBooks(new Integer(1), EntityGraphUtils.fromAttributePaths("books"));
 		displayAuthor(author);
 	}
 	
@@ -462,7 +473,7 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
 
 ```
 ```log
-  Hibernate: 
+ Hibernate: 
     select
         author0_.`id` as id1_0_0_,
         book2_.`id` as id1_1_1_,
@@ -485,7 +496,7 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
             on books1_.`book_id`=book2_.`id` 
     where
         author0_.`id`=?
-20:39:38.277  INFO 6384 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Joshua Bloch wrote 1 books.
+21:19:15.763  INFO 14156 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Joshua Bloch wrote 1 books.
 Hibernate: 
     select
         publisher0_.`id` as id1_3_0_,
@@ -495,11 +506,11 @@ Hibernate:
         `publisher` publisher0_ 
     where
         publisher0_.`id`=?
-20:39:38.286  INFO 6384 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Publisher name: Addison-Wesley Professional
+21:19:15.774  INFO 14156 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Publisher name: Addison-Wesley Professional
   
 ```
 
-In below example we can set attributes paths. ` @EntityGraph(attributePaths = {"books","books.publisher"},type = EntityGraphType.LOAD)`
+In below example we can set attributes paths. `EntityGraphUtils.fromAttributePaths("books","books.publisher")`
 Author class has property name `books` and Book class has property name `publisher` 
 It will load Book objects as well as publisher associate with books
 
@@ -508,9 +519,8 @@ It will load Book objects as well as publisher associate with books
 @Repository
 public interface AuthorRepository extends JpaRepository<Author, Integer> {
 
-     @EntityGraph(attributePaths = {"books","books.publisher"},type = EntityGraphType.LOAD)
-	 @Query("SELECT author FROM Author author WHERE author.id = :id ")
-	 Author findBooksPublisherAndLoad(@Param("id") Integer id);
+    @Query("SELECT author FROM Author author WHERE author.id = :id ")
+	Author findBooks(@Param("id")  Integer id,EntityGraph entityGraph);
 	
 }
 
@@ -519,9 +529,9 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
 ```java
 
 	@Test
-	public void findBooksPublisherAndLoad() {
-		log.info("... findBooksPublisherAndLoad ...");		
-		Author author = authorRepository.findBooksPublisherAndLoad(1);
+	public void selectWithBooksPublisher() {
+		log.info("... selectWithBooksPublisher...");		
+		Author author = authorRepository.findBooks(new Integer(1), EntityGraphUtils.fromAttributePaths("books","books.publisher"));
 		displayAuthor(author);
 	}
 	
@@ -535,6 +545,7 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
 
 ```
 ```log
+
 Hibernate: 
     select
         author0_.`id` as id1_0_0_,
@@ -564,9 +575,8 @@ Hibernate:
             on book2_.`publisher_id`=publisher3_.`id` 
     where
         author0_.`id`=?
-20:42:34.904  INFO 9508 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Joshua Bloch wrote 1 books.
-20:42:34.905  INFO 9508 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Publisher name: Addison-Wesley Professional
-
+21:21:43.496  INFO 6476 ---[main] c.t.m.r.TestJPARepositoryEntityGraph     : Joshua Bloch wrote 1 books.
+21:21:43.497  INFO 6476 ---[main] c.t.m.r.TestJPARepositoryEntityGraph     : Publisher name: Addison-Wesley Professional
 
 ```
 
