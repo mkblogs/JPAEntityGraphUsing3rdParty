@@ -273,7 +273,7 @@ Hibernate:
             on books1_.`book_id`=book2_.`id` 
     where
         author0_.`id`=?
-21:10:23.108  INFO 9004 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
+21:10:23.108  INFO 9004 --- [main] .t.m.r.TestJPARepositoryNamedEntityGraph : Joshua Bloch wrote 1 books.
 Hibernate: 
     select
         publisher0_.`id` as id1_3_0_,
@@ -283,7 +283,7 @@ Hibernate:
         `publisher` publisher0_ 
     where
         publisher0_.`id`=?
-2020-07-12 21:10:23.118  INFO 9004 --- [           main] .t.m.r.TestJPARepositoryNamedEntityGraph : Publisher name: Addison-Wesley Professional
+21:10:23.118  INFO 9004 ---[main] .t.m.r.TestJPARepositoryNamedEntityGraph : Publisher name: Addison-Wesley Professional
 
 ```
 
@@ -459,7 +459,8 @@ public interface AuthorRepository extends EntityGraphJpaRepository<Author, Integ
 	@Test
 	public void selectWithBooks() {
 		log.info("... selectWithBooksPublisher ...");		
-		Author author = authorRepository.findBooks(new Integer(1), EntityGraphUtils.fromAttributePaths("books"));
+		Author author = authorRepository.findBooks(new Integer(1), 
+				EntityGraphUtils.fromAttributePaths("books"));
 		displayAuthor(author);
 	}
 	
@@ -496,7 +497,7 @@ public interface AuthorRepository extends EntityGraphJpaRepository<Author, Integ
             on books1_.`book_id`=book2_.`id` 
     where
         author0_.`id`=?
-21:19:15.763  INFO 14156 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Joshua Bloch wrote 1 books.
+21:19:15.763  INFO 14156 --- [main] c.t.m.r.TestJPARepositoryEntityGraph     : Joshua Bloch wrote 1 books.
 Hibernate: 
     select
         publisher0_.`id` as id1_3_0_,
@@ -506,7 +507,7 @@ Hibernate:
         `publisher` publisher0_ 
     where
         publisher0_.`id`=?
-21:19:15.774  INFO 14156 --- [           main] c.t.m.r.TestJPARepositoryEntityGraph     : Publisher name: Addison-Wesley Professional
+21:19:15.774  INFO 14156 --- [main] c.t.m.r.TestJPARepositoryEntityGraph     : Publisher name: Addison-Wesley Professional
   
 ```
 
